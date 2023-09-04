@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex flex-col items-center">
+    <h1>WebSocket Chat</h1>
+    <h2>Your ID: <span id="ws-id"></span></h2>
+    <form action="" onsubmit="sendMessage(event)">
+        <input class="bg-green-300" type="text" id="messageText" autocomplete="off"/>
+        <button>Send</button>
+    </form>
+    <ul id='messages'>
+    </ul>
+</div>
+    <script>
+        async function getLastMessages() {
+            const url = 'http://localhost:8000/chat/last_messages'
+            const response = await fetch(url, {
+                method: 'GET'
+            })
+            return response.json()
+        }
+
+        async function postLikes(data) {
+            const url = 'http://localhost:8000/chat/post_likes'
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            return response.json()
+
+        }
+
+        getLastMessages()
+            .then(messages => {
+                appendMessage('Предыдущие 5 сообщений:')
+                messages.forEach(msg => {
+                    appendMessage(msg.message, msg.client_id)
+                })
+                appendMessage('\nНовые сообщения')
+            })
+
+        async function getCntLikes(client_id) {
+            let cnt_like = 0
+            const url = `http://localhost:8000/chat/get_likes/${client_id}`
+            const response = await fetch(url, {
+                method: 'GET',
+            }).then(response => {
+                return response.json()
+            }).then(data => {
+                cnt_like = data.data['cnt_likes']
+            })
+            return cnt_like
+
+        }
+
+        // const cnt_likes = (cnt) => {
+        //     return cnt
+        // }
+
+        async function appendMessage(msg, client_id) {
+            let messages = document.getElementById('messages')
+            let message = document.createElement('li')
+            let content = document.createTextNode(msg)
+            message.appendChild(content)
+            messages.appendChild(message)
+            if (client_id) {
+                message.id = client_id
+                let divForLike = document.createElement('div')
+                divForLike.className = 'like-container'
+                divForLike.id = 'client_id_' + client_id
+                let cnt_likes = await (getCntLikes(client_id))
+                console.log(cnt_likes)
+                divForLike.innerHTML =
+                    `  <button class="like-button" onclick="setLike(this)">👍</button>\n` +
+                    `  <span class="like-count">${cnt_likes}</span>\n`
+                message.appendChild(divForLike)
+
+            }
+
+        }
+
+        let client_id = Date.now()
+        document.querySelector("#ws-id").textContent = client_id;
+        let ws = new WebSocket(`ws://localhost:8000/chat/ws/${client_id}`);
+        ws.onmessage = function(event) {
+            appendMessage(event.data, client_id)
+        };
+
+        // let ws_like = new WebSocket(`ws://localhost:8000/chat/ws/like/${client_id}`)
+
+        function setLike(el) {
+            const parentDiv = el.parentNode
+            const parentLi = parentDiv.parentNode
+            const clientId = parentLi.id
+            const likeCount = parentDiv.getElementsByClassName('like-count')[0]
+            const currentCount = parseInt(likeCount.textContent, 10);
+            likeCount.textContent = currentCount + 1;
+            postLikes({
+                'id': clientId,
+                'cnt':likeCount.textContent,
+            }).then((data) => {
+                console.log(data)
+            })
+        }
+
+        function sendMessage(event) {
+            let input = document.getElementById("messageText")
+            ws.send(input.value)
+            input.value = ''
+            event.preventDefault()
+        }
+        function sendLike(event) {
+            let like = document.getElementById('')
+        }
+        setLikes()
+    </script>
+{% endblock %}
