@@ -12,14 +12,8 @@ COPY . .
 
 RUN chmod a+x docker/*.sh
 
-<<<<<<< HEAD
 RUN alembic upgrade head
 
 WORKDIR src
 
 CMD gunicorn main:app --workers 1 --worker-class uvicorn.workers.UvicornWorker --bind=0.0.0.0:8000
-=======
-#WORKDIR src
-#
-#CMD gunicorn main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind=0.0.0.0:8000
->>>>>>> 18b4d76ddfedc9ad9caba21e4e9ceb56473a6bda
